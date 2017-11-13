@@ -51,12 +51,44 @@ def main():
 			del users[removing]
 			print("User removed\n")
 		#create new private key
-		elif(command == "-nP"):
+		elif(command == "-priv"):
 			curve = SECP_256k1()
 			point = curve.generator()
 			temp = int_to_string(int(point.x * point.y))
 			privateKey = string_to_int(temp[0:16])
 			myUserKeys["private"] = privateKey
+			print("Your private key was created and saved")
+		#create public key for user
+		elif(command == "-pub"):
+			#no idea how python handles variables so this
+			key = Point(0,0)
+			curve = SECP_256k1()
+			while(True):
+				needKey = raw_input("Do you wish to create a new key? (y/n)")
+				if(needKey == "y"):
+					temp = curve.generator()
+					x = string_to_int(int_to_string(temp.x)[0:16])
+					y = string_to_int(int_to_string(temp.x)[0:16])
+					tempx = int_to_string(x * myUserKeys["private"])[0:16]
+					tempy = int_to_string(y * myUserKeys["private"])[0:16]
+					key = Point(string_to_int(tempx), string_to_int(tempy))
+					print("Your public key is:\n")
+					print(key)
+					myUser = raw_input("What would you like to save this key " +
+										"under? ")
+					if(myUser == "--NA"):
+						break;
+					else:
+						myUserKeys[myUser] = key
+						break;
+				elif(needKey == "n"):
+					myUser = raw_input("What is the user your public key is " +
+										"stored under? ")
+					key = myUserKeys[myUser]
+					break;
+				else:
+					print("Please input y/n\n")
+					print("eh")
 		#encrypt file
 		elif(command == "-enc"):	
 			fileLoc = raw_input("Location of file to encrypt: ")
@@ -75,11 +107,11 @@ def main():
 			print(KENC)
 			encrypted = encrypt(file.read(), KENC)
 			writing = open(fileLoc, "w")
-			writing.write(str(myPublic.x) + unichr(0) +  encrypted)
+			writing.write(str(myPublic.x) + chr(0) +  encrypted)
 
 		#decrypt file
 		elif(command == "-dec"):
-			filLoc = raw_input("Location of file to decrypt: ")
+			fileLoc = raw_input("Location of file to decrypt: ")
 			while(True):
 				if(os.path.isfile(fileLoc)):
 					break
@@ -114,13 +146,13 @@ def myKey(myUserKeys):
 			print("Your public key is:\n")
 			print(key)
 			myUser = raw_input("What would you like to save this key under? ")
-			if(myUser == "-NA"):
+			if(myUser == "--NA"):
 					break;
 			else:
 				myUserKeys[myUser] = key
 			break;
 		elif(needKey == "n"):
-			myUser = raw_input("What is the user your private key is stored "+
+			myUser = raw_input("What is the user your public key is stored "+
 								"under? ")
 			key = myUserKeys[myUser]
 			break;
@@ -181,7 +213,7 @@ def KDF(secret):
 def decrypt(message, myPriv):
 	pos = message.index(str(unichr(0)))
 	sendPub = message[0:pos]
-	sharedSec = sendPub * myPriv.x
+	sharedSec = string_to_int(sendPub) * myPriv
 	secret2 = int_to_string(sharedSec)
 	HMAC = hmac.new(secret2,secret2)
 	KENC = hashlib.sha256(HMAC.digest()).digest()
